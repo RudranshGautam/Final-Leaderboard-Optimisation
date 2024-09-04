@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Expenses</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <h2>Expense Tracker</h2>
+    <form id="expense-form">
+        <input type="number" name="amount" placeholder="Expense Amount" required>
+        <input type="text" name="description" placeholder="Description" required>
+        <select name="category" required>
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Entertainment">Entertainment</option>
+        </select>
+        <button type="submit">Add Expense</button>
+    </form>
+
+    <h3>Your Expenses</h3>
+    <ul id="expenses-list">
+        <!-- Dynamic content will be added here -->
+    </ul>
+
+    <button onclick="window.location.href='/expenses/buy-premium'">Buy Premium</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadExpenses();
+        });
+
+        document.getElementById('expense-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const data = new URLSearchParams();
+            formData.forEach((value, key) => data.append(key, value));
+
+            try {
+                const response = await fetch('/expenses/add', {
+                    method: 'POST',
+                    body: data
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok.');
+                
+                const newExpense = await response.json();
+                addExpenseToList(newExpense);
+                event.target.reset(); // Clear the form
+            } catch (error) {
+                console.error('Error adding expense:', error);
+            }
+        });
+
+        async function loadExpenses() {
+            try {
+                const response = await fetch('/expenses/data');
+                if (!response.ok) throw new Error('Network response was not ok.');
+                
+                const expenses = await response.json();
+                expenses.forEach(expense => addExpenseToList(expense));
+            } catch (error) {
+                console.error('Error fetching expenses:', error);
+            }
+        }
+
+        function addExpenseToList(expense) {
+            const expensesList = document.getElementById('expenses-list');
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `${expense.amount} - ${expense.description} - ${expense.category} <a href="#" onclick="deleteExpense(${expense.id})">Delete</a>`;
+            expensesList.appendChild(listItem);
+        }
+
+        async function deleteExpense(id) {
+            try {
+                const response = await fetch(`/expenses/delete/${id}`, {
+                    method: 'GET'
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok.');
+
+                document.querySelector(`#expenses-list li a[onclick="deleteExpense(${id})"]`).parentNode.remove();
+            } catch (error) {
+                console.error('Error deleting expense:', error);
+            }
+        }
+    </script>
+</body>
+</html>
